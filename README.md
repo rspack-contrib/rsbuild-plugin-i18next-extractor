@@ -151,16 +151,9 @@ pluginI18nextExtractor({
 });
 ```
 
-## How it Works
-
-1. The plugin uses i18next-cli to scan your source code for i18n translation key usage
-2. It reads your locale JSON files
-3. It generates a bundle containing only translation keys that are actually used
-4. The unused keys are not included in final bundle, reducing size
-
 ## Credits
 
-[rsbuild-plugin-i18next-extractor](https://github.com/rspack-contrib/rsbuild-plugin-i18next-extractor) - Inspiration for this plugin
+[rsbuild-plugin-tailwindcss](https://github.com/rspack-contrib/rsbuild-plugin-tailwindcss) - Inspiration for this plugin
 
 ## License
 
