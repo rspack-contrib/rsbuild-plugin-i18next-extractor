@@ -1,0 +1,202 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+import type { Rspack } from '@rsbuild/core';
+import type { PluginI18nextExtractorOptions } from './options.js';
+import {
+  getLocalesFromDirectory,
+  getLocaleVariableName,
+  resolveLocaleFilePath,
+} from './utils.js';
+
+interface I18nextExtractorWebpackPluginOptions extends PluginI18nextExtractorOptions {
+  logger: {warn: (message: string) => void;}
+}
+
+export class I18nextExtractorWebpackPlugin {
+  constructor(private options: I18nextExtractorWebpackPluginOptions) {}
+
+  apply(compiler: Rspack.Compiler): void {
+    const { Compilation, sources } = compiler.webpack;
+
+    compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
+      const locales = getLocalesFromDirectory(
+        compiler.context,
+        this.options.localesDir,
+      );
+
+      if (locales.length === 0) {
+        throw new Error(
+          `[rsbuild-plugin-i18next-extractor] There is no "*.json" in ${this.options.localesDir}. Please check your "localesDir" option.`,
+        );
+      }
+
+      compilation.hooks.processAssets.tapPromise(
+        {
+          name: this.constructor.name,
+          stage: Compilation.PROCESS_ASSETS_STAGE_DERIVED,
+        },
+        async () => {
+          // Process each entrypoint
+          await Promise.all(
+            [...compilation.entrypoints.entries()].map(
+              async ([entryName, entrypoint]) => {
+                // get entry chunk but not split chunk
+                const jsFiles = entrypoint.chunks
+                  .filter((chunk) => chunk.hasRuntime())
+                  .flatMap((chunk) => Array.from(chunk.files))
+                  .filter((file) => /\.(c|m)?js$/.test(file))
+                  .map((file) => compilation.getAsset(file))
+                  .filter((file) => !!file);
+
+                const asyncJsFiles = compilation.chunkGroups
+                  .filter((cg) => !cg.isInitial())
+                  .filter((cg) =>
+                    cg.getParents().some((p) => p.name === entryName),
+                  )
+                  .flatMap((cg) => cg.getFiles())
+                  .filter((file) => /\.(c|m)?js$/.test(file))
+                  .map((file) => compilation.getAsset(file))
+                  .filter((file) => !!file);
+
+                // Collect all the modules belong to current entry
+                const entryModules = new Set<string>();
+                for (const chunk of entrypoint.chunks) {
+                  const modules =
+                    compilation.chunkGraph.getChunkModulesIterable(chunk);
+                  for (const m of modules) {
+                    collectModules(m, entryModules);
+                  }
+                }
+                // Only extract keys in js(x)/ts(x) files
+                const files = Array.from(entryModules).filter((f) =>
+                  /\.[jt]sx?$/.test(f),
+                );
+
+                // Load origin translations
+                const originTranslations: Record<
+                  string,
+                  Record<string, string>
+                > = {};
+                for (const locale of locales) {
+                  const localePath = resolveLocaleFilePath(
+                    this.options.localesDir,
+                    locale,
+                    compiler.context,
+                  );
+                  try {
+                    const content = await fs.readFile(localePath, 'utf-8');
+                    originTranslations[locale] = JSON.parse(content) as Record<
+                      string,
+                      string
+                    >;
+                  } catch {
+                    throw new Error(
+                      `[rsbuild-plugin-i18next-extractor] Failed to read locale file "${localePath}"`,
+                    );
+                  }
+                }
+
+                const { extractTranslationKeys } = await import(
+                  './i18nextCLIExtractor.js'
+                );
+                const extractedTranslationKeys = await extractTranslationKeys(
+                  files,
+                  locales,
+                  this.options.i18nextToolkitConfig,
+                );
+
+                // Generate i18n resource definitions for each locale
+                const i18nTranslationDefinitions: string[] = [];
+
+                for (const locale of locales) {
+                  const localeFilePath = resolveLocaleFilePath(
+                    this.options.localesDir,
+                    locale,
+                    compiler.context,
+                  );
+
+                  const extractedTranslations = pickTranslationsByKeys(
+                    originTranslations[locale],
+                    extractedTranslationKeys[locale],
+                    (key) => {
+                      // Use custom callback if provided, otherwise use default warning
+                      if (this.options.onKeyNotFound) {
+                        this.options.onKeyNotFound(
+                          key,
+                          locale,
+                          localeFilePath,
+                          entryName,
+                        );
+                      } else {
+                        this.options.logger.warn(
+                          `[rsbuild-plugin-i18next-extractor] The key "${key}" is not found in "${path.relative(
+                            compiler.context,
+                            localeFilePath,
+                          )}". Current entry is "${entryName}".`,
+                        );
+                      }
+                    },
+                  );
+
+                  i18nTranslationDefinitions.push(
+                    `const ${getLocaleVariableName(locale)} = ${JSON.stringify(extractedTranslations)};`,
+                  );
+                }
+
+                // Replace the placeholder with actual extracted translations
+                for (const jsFile of [...jsFiles, ...asyncJsFiles]) {
+                  const assetName = jsFile.name;
+                  compilation.updateAsset(
+                    assetName,
+                    (oldSource) =>
+                      new sources.ConcatSource(
+                        i18nTranslationDefinitions.join('\n'),
+                        '\n',
+                        oldSource,
+                      ),
+                  );
+                }
+              },
+            ),
+          );
+        },
+      );
+    });
+  }
+}
+
+function collectModules<
+  T extends Rspack.Module & { modules?: Rspack.Module[]; resource?: string },
+>(m: T, entryModules: Set<string>): void {
+  if (m.modules) {
+    for (const innerModule of m.modules) {
+      collectModules(innerModule, entryModules);
+    }
+  } else if (m.resource) {
+    const resource = m.resource.split('?')[0];
+    if (resource) {
+      entryModules.add(resource);
+    }
+  }
+}
+
+/**
+ * Combine the origin translations and the extracted translation keys.
+ */
+function pickTranslationsByKeys(
+  originTranslations: Record<string, string>,
+  extractedKeys: string[],
+  onKeyNotFoundCallback: (key: string) => void,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of extractedKeys) {
+    if (originTranslations[key]) {
+      result[key] = originTranslations[key];
+    } else {
+      onKeyNotFoundCallback(key);
+      result[key] = '';
+    }
+  }
+  return result;
+}

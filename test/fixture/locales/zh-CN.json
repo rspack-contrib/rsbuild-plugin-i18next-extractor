@@ -1,0 +1,9 @@
+{
+  "title": "欢迎使用 i18next-extractor",
+  "look": {
+    "deep": "深入查找"
+  },
+  "interpolation": "{{what}} 是 {{how}}",
+  "key_other": "个",
+  "unused": "这个key不应该出现在输出中"
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Welcome to i18next-extractor",
+  "look": {
+    "deep": "Look deep"
+  },
+  "interpolation": "{{what}} is {{how}}",
+  "key_one": "item",
+  "key_other": "items",
+  "unused": "This key should not be in the output"
+}

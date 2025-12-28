@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+.idea/
+coverage/
+
+*.log
+test/fixture/public/**
+
+/src/**/*.js
+/src/**/*.js.map
