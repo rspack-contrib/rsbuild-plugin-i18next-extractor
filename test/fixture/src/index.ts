@@ -1,5 +1,7 @@
+import { add } from './add'
 import { i18n } from './i18n';
 
+console.log(add(1, 2));
 console.log(i18n.t('title'));
 console.log(i18n.t('look.deep'));
 console.log(i18n.t('interpolation', { what: 'i18next', how: 'great' }));

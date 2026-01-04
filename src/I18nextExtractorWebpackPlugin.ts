@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
+import { createFilter } from '@rollup/pluginutils';
 import type { Rspack } from '@rsbuild/core';
 import type { PluginI18nextExtractorOptions } from './options.js';
 import {
@@ -9,8 +9,9 @@ import {
   resolveLocaleFilePath,
 } from './utils.js';
 
-interface I18nextExtractorWebpackPluginOptions extends PluginI18nextExtractorOptions {
-  logger: {warn: (message: string) => void;}
+interface I18nextExtractorWebpackPluginOptions
+  extends PluginI18nextExtractorOptions {
+  logger: { warn: (message: string) => void };
 }
 
 export class I18nextExtractorWebpackPlugin {
@@ -18,6 +19,12 @@ export class I18nextExtractorWebpackPlugin {
 
   apply(compiler: Rspack.Compiler): void {
     const { Compilation, sources } = compiler.webpack;
+
+    // Create filter based on extract.ignore option
+    const ignorePatterns = this.options.i18nextToolkitConfig?.extract?.ignore;
+    const filter = createFilter(undefined, ignorePatterns, {
+      resolve: compiler.context,
+    });
 
     compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
       const locales = getLocalesFromDirectory(
@@ -68,10 +75,10 @@ export class I18nextExtractorWebpackPlugin {
                     collectModules(m, entryModules);
                   }
                 }
-                // Only extract keys in js(x)/ts(x) files
-                const files = Array.from(entryModules).filter((f) =>
-                  /\.[jt]sx?$/.test(f),
-                );
+                // Only extract keys in js(x)/ts(x) files and apply ignore filter
+                const files = Array.from(entryModules)
+                  .filter((f) => /\.[jt]sx?$/.test(f))
+                  .filter(filter);
 
                 // Load origin translations
                 const originTranslations: Record<
