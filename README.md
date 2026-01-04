@@ -132,9 +132,12 @@ pluginI18nextExtractor({
 - **Type:** `string | string[] | undefined`
 - **Required:** No
 
+
 You can use the `extract.ignore` option to exclude certain files from translation extraction. This is useful for avoiding extraction from third-party code, or other files that shouldn't be scanned for translations.
 
 The `i18nextToolkitConfig.extract.ignore` option supports **glob patterns** and can be either a string or an array of strings:
+
+**NOTE:** Unlike [i18next-cli](https://github.com/i18next/i18next-cli/blob/6c25f7a20febccf73cf20e22a927e7b1745a71a9/src/extractor/core/key-finder.ts#L130) which ignores `node_modules` by default, `rsbuild-plugin-i18next-extractor` scans all files including `node_modules` to ensure translations from third-party packages are properly extracted. If you want to exclude `node_modules`, use the `extract.ignore` option shown in the examples below. 
 
 ```ts
 pluginI18nextExtractor({
@@ -155,7 +158,7 @@ pluginI18nextExtractor({
     extract: {
       // Ignore multiple patterns
       ignore: [
-        'node_modules/**',
+        'node_modules/dayjs/**',
         'packages/**',
       ],
     },
