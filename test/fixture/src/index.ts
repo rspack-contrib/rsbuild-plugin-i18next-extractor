@@ -1,4 +1,4 @@
-import { add } from './add'
+import { add } from './add';
 import { i18n } from './i18n';
 
 console.log(add(1, 2));
