@@ -1,6 +1,6 @@
 {
   "name": "rsbuild-plugin-i18next-extractor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Rsbuild plugin for extracting i18n translations using i18next-cli",
   "keywords": [
     "rsbuild",
@@ -63,7 +63,7 @@
     "@rsbuild/core": "^1.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.15.0"
 }
