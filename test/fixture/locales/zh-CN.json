@@ -5,5 +5,6 @@
   },
   "interpolation": "{{what}} 是 {{how}}",
   "key_other": "个",
+  "add": "添加数字",
   "unused": "这个key不应该出现在输出中"
 }

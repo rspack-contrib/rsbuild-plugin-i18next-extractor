@@ -6,5 +6,6 @@
   "interpolation": "{{what}} is {{how}}",
   "key_one": "item",
   "key_other": "items",
+  "add": "Add number",
   "unused": "This key should not be in the output"
 }

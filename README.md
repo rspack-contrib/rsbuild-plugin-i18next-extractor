@@ -127,6 +127,42 @@ pluginI18nextExtractor({
 });
 ```
 
+#### Ignoring Files
+
+- **Type:** `string | string[] | undefined`
+- **Required:** No
+
+You can use the `extract.ignore` option to exclude certain files from translation extraction. This is useful for avoiding extraction from third-party code, or other files that shouldn't be scanned for translations.
+
+The `i18nextToolkitConfig.extract.ignore` option supports **glob patterns** and can be either a string or an array of strings:
+
+```ts
+pluginI18nextExtractor({
+  localesDir: './locales',
+  i18nextToolkitConfig: {
+    extract: {
+      // Ignore a single pattern
+      ignore: 'node_modules/**',
+    },
+  },
+});
+```
+
+```ts
+pluginI18nextExtractor({
+  localesDir: './locales',
+  i18nextToolkitConfig: {
+    extract: {
+      // Ignore multiple patterns
+      ignore: [
+        'node_modules/**',
+        'packages/**',
+      ],
+    },
+  },
+});
+```
+
 ### `onKeyNotFound`
 
 - **Type:** `(key: string, locale: string, localeFilePath: string, entryName: string) => void`
