@@ -15,10 +15,7 @@
     "name": "Hengchang Lu",
     "email": "luhengchan228@gmail.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/rspack-contrib/rsbuild-plugin-i18next-extractor.git"
-  },
+  "repository": "https://github.com/rstackjs/rsbuild-plugin-i18next-extractor",
   "type": "module",
   "exports": {
     ".": {
