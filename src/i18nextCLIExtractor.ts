@@ -15,10 +15,10 @@ export async function extractTranslationKeys(
     ...i18nextToolkitConfig,
     locales,
     extract: {
+      ...i18nextToolkitConfig?.extract,
       input: files,
       output:
         'node_modules/.rsbuild-plugin-i18next-extractor/locales/{{language}}/{{namespace}}.json',
-      ...i18nextToolkitConfig?.extract,
     },
   });
 
